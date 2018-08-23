@@ -69,12 +69,11 @@ def getMode(channel):
     cmd = bytearray([ 0x41, 0x06, 0x01, 0x00, bay[channel - 1], source ])
     if verbose: 
         print(cmd.hex())
-    print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_ZERO' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
     resp = ser.read(6)
     if verbose: 
         print(resp.hex())
-    print("Mode = " + str(resp[3]) )
+        print("Mode = " + str(resp[3]) )
     return resp[3]
 
 
@@ -85,6 +84,9 @@ def zero(channel):
     """
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
+
+    # ensure that channel is enabled by enabling it anyway
+    enableChannel(channel)
     cmd = bytearray([ 0x58, 0x06, 0x01, 0x00, bay[channel - 1], source ])
     if verbose: 
         print(cmd.hex())
@@ -125,6 +127,11 @@ def position(channel, pos):
     ser.write(cmd)
     
 def getPosition(channel):
+    """
+        This function requests the position of a channel and converts the result into nanometers. It assumes that a DRV517 is used with a maximum trabel of 30 um. 
+        
+        This function returns the position in integer nanometer.
+    """
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
     cmd = bytearray([ 0x47, 0x06, 0x01, 0x00, bay[channel - 1], source ])
@@ -132,7 +139,13 @@ def getPosition(channel):
         print(cmd.hex())
     ser.write(cmd)
     resp = ser.read(10)
-    print(resp.hex())
+    # convert into micrometer
+    posMSB = list(resp[-2:])[1]
+    posLSB = list(resp[-2:])[0]
+    pos = int ( ( posMSB * 256 + posLSB ) / POS_SCALE_FACTOR * 30 * 1000 )
+    print(BC.OKBLUE + "Position of channel " + str(channel) + " = " + str(pos) + " nanometers " + BC.ENDC )
+    return pos
+
 
 
 def setOutputVoltage(channel, voltage):
