@@ -8,9 +8,16 @@ ser = serial.Serial()
 verbose = False
 
 # the following variables are obtained from the communication protocol and applies to the KST101
-des = 0x50  # generic USB
+des = 0x50  # generic USB - addresses the entire controller
+# but the BPC203 controller consists of three INDEPENDENT bays with only ONE freaking CHANNEL (ie. the controller has three channels because it has three independent bays and each bay has only one channel, so basically the channel identifier is useless)
+bay = [0x21, 0x22, 0x23]
+
 source = 0x01  # host
 
+
+# from the datasheet
+POS_SCALE_FACTOR = 32767
+VOL_SCALE_FACTOR = 32767
 
 def init( port = '/dev/serial/by-id/usb-Thorlabs_APT_Piezo_Controller_71837619-if00-port0', Verbose = False):
     """
@@ -40,13 +47,14 @@ def identify(channel):
 def setMode(channel, closedLoop = True):
     """
         This function sets the particular channel to a closed loop mode (0x04: closed loop smooth, a smooth transition to closed loop mode to minimise voltage peaks)
+        NOTE: This function currently does not work. 
     """
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
     mode = 0x01 # open loop smooth
     if closedLoop:
         mode = 0x02 # closed loop smooth
-    cmd = bytearray([ 0x40, 0x06 ] + int2byteArray(channel, 1) + [ mode, des, source ])
+    cmd = bytearray([ 0x40, 0x06, 0x01,  mode, bay[channel - 1], source ])
     if verbose: 
         print(cmd.hex())
     print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_POSCONTROLMODE' to controller for channel " + str(channel) + BC.ENDC)
@@ -58,7 +66,7 @@ def getMode(channel):
     """
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
-    cmd = bytearray([ 0x41, 0x06] + int2byteArray(channel, 1) + [ 0x00, des, source ])
+    cmd = bytearray([ 0x41, 0x06, 0x01, 0x00, bay[channel - 1], source ])
     if verbose: 
         print(cmd.hex())
     print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_ZERO' to controller for channel " + str(channel) + BC.ENDC)
@@ -67,6 +75,7 @@ def getMode(channel):
     if verbose: 
         print(resp.hex())
     print("Mode = " + str(resp[3]) )
+    return resp[3]
 
 
 def zero(channel):
@@ -76,18 +85,85 @@ def zero(channel):
     """
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
-    cmd = bytearray([ 0x58, 0x06, ] + int2byteArray(channel, 1) + [ 0x00, des, source ])
+    cmd = bytearray([ 0x58, 0x06, 0x01, 0x00, bay[channel - 1], source ])
     if verbose: 
         print(cmd.hex())
     print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_ZERO' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
 
+def zeroFinished(channel):
+    """
+        Checks if the zero routine has finished
+        If the routine has finished, the mode will be set to closed loop
+    """
+    mode = getMode(channel)
+    if mode == 0x02: 
+        # closed loop mode
+        return True
+    return False
+
+def position(channel, pos):
+    """
+        This function positions the DRV517 actuator to a position relative to the zero'ed position. 
+        
+        NOTE: pos takes values from 0 to 30 micrometer, which is the maximum piezo travel. 
+        NOTE: Also, the channel needs to have finished the zeroing routine. ENSURE that the zeroing routine is finished by checking the mode. Otherwise, this command is ignored by the unit. 
+    """
+    #error checking
+    if channel != 1 and channel != 2 and channel != 3:
+        raise ValueError("Channel needs to be 1, 2 or 3")
+    if pos > 30 or pos < 0:
+        raise ValueError("pos paramter needs to be smaller than 30 and larger than 0")
+    if zeroFinished( channel ) == False:
+        raise RuntimeError("The zeroing routine has not finished. The position command will be ignored. ")
+
+    posScaled = pos / 30 * POS_SCALE_FACTOR
+    cmd = bytearray([ 0x46, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(posScaled, 2))
+    if verbose: 
+        print(cmd.hex())
+    print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTPOS' to controller for channel " + str(channel) + BC.ENDC)
+    ser.write(cmd)
+    
+def getPosition(channel):
+    if channel != 1 and channel != 2 and channel != 3:
+        raise ValueError("Channel needs to be 1, 2 or 3")
+    cmd = bytearray([ 0x47, 0x06, 0x01, 0x00, bay[channel - 1], source ])
+    if verbose: 
+        print(cmd.hex())
+    ser.write(cmd)
+    resp = ser.read(10)
+    print(resp.hex())
+
+
+def setOutputVoltage(channel, voltage):
+    if channel != 1 and channel != 2 and channel != 3:
+        raise ValueError("Channel needs to be 1, 2 or 3")
+    if voltage > 100 or voltage < 0:
+        raise ValueError("voltage paramter needs to be smaller than 100 percent and larger than 0")
+
+    volScaled = voltage / 100 * VOL_SCALE_FACTOR
+    cmd = bytearray([ 0x43, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(volScaled, 2))
+    if verbose: 
+        print(cmd.hex())
+    print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTVOLTS' to controller for channel " + str(channel) + BC.ENDC)
+    ser.write(cmd)
+
+def getEnableState(channel):
+    ser.write( bytearray([ 0x11, 0x02, 0x01, 0x00, bay[channel - 1], source ]) )
+    resp = ser.read(6)
+    print(" enabled state is " + str(resp[3]))
+    # an enable state of 2 is disable
+    if verbose:
+        print(resp.hex())
+
+def enableChannel(channel):
+    ser.write( bytearray([ 0x10, 0x02, 0x01, 0x01, bay[channel - 1], source ]) )
+
+def disableChannel(channel):
+    ser.write( bytearray([ 0x10, 0x02, 0x01, 0x02, bay[channel - 1], source ]) )
 
 def closePort():
     ser.close()
-
-
-
 
 
 

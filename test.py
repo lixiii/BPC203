@@ -16,6 +16,12 @@ def test_setClosedLoopMode():
 def test_zero():
     bpc.zero(1)
 
+def test_position():
+    bpc.zero(1)
+    if bpc.zeroFinished(1) == False:
+        with pytest.raises(RuntimeError):
+            bpc.position(1, 10)
+            
 
 # function to ensure that the port is initialised before any test is run and that it it closed after all tests are run
 @pytest.yield_fixture(scope='session', autouse=True)
