@@ -106,7 +106,7 @@ def zeroFinished(channel):
 
 def position(channel, pos):
     """
-        This function positions the DRV517 actuator to a position relative to the zero'ed position. 
+        This function positions the DRV517 actuator to a position relative to the zero'ed position. The position parameter is in MICROMETERS
         
         NOTE: pos takes values from 0 to 30 micrometer, which is the maximum piezo travel. 
         NOTE: Also, the channel needs to have finished the zeroing routine. ENSURE that the zeroing routine is finished by checking the mode. Otherwise, this command is ignored by the unit. 
