@@ -151,12 +151,15 @@ def getPosition(channel):
 
 
 def setOutputVoltage(channel, voltage):
+    """
+        Sets the output voltage to a specified value. 
+        NOTE that due to controller malfunction, the maximum voltage output is 47.59V. 
+        NOTE: if the voltage is out of range, the command will be ignored by the controller. 
+    """
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
-    # if voltage > 100 or voltage < 0:
-        # raise ValueError("voltage paramter needs to be smaller than 100 percent and larger than 0")
 
-    volScaled = voltage / 100 * VOL_SCALE_FACTOR
+    volScaled = voltage * VOL_SCALE_FACTOR
     cmd = bytearray([ 0x43, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(volScaled, 2))
     if verbose: 
         print(cmd.hex())

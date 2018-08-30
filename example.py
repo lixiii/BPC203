@@ -10,8 +10,8 @@ while bpc.zeroFinished(1) != True and bpc.zeroFinished(2) != True:
     # resend status check every 0.5s
     time.sleep(0.5)
 
-bpc.position(1, 5)
-bpc.position(2, 6)
+bpc.position(1, 5000)
+bpc.position(2, 6000)
 
 # wait for motion to complete as the controller does not provide a function to achieve that
 time.sleep(1)
