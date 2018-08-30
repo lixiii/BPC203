@@ -159,7 +159,7 @@ def setOutputVoltage(channel, voltage):
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
 
-    volScaled = voltage * VOL_SCALE_FACTOR
+    volScaled = voltage / 75 * VOL_SCALE_FACTOR
     cmd = bytearray([ 0x43, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(volScaled, 2))
     if verbose: 
         print(cmd.hex())
