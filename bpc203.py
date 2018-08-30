@@ -2,7 +2,6 @@
 
 import serial
 import math
-from bcolours import BC
 import time
 ser = serial.Serial()
 
@@ -242,3 +241,13 @@ def close():
 
 def int2byteArray(inputInt, byteCount):
     return list( int(inputInt).to_bytes(byteCount, byteorder="little", signed=True) )
+
+class BC:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'

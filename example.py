@@ -1,7 +1,7 @@
 # Example program to setup the controller and position channel one to 5 um and channel 2 to 6um.
 import bpc203 as bpc
 import time
-bpc.init()
+bpc.init(Verbose=True)
 bpc.zero(1)
 bpc.zero(2)
 
@@ -18,4 +18,5 @@ time.sleep(1)
 bpc.getPosition(1)
 bpc.getPosition(2)
 
+input("Hit enter to close the connection")
 bpc.close()
