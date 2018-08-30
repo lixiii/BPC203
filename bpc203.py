@@ -25,6 +25,7 @@ def init( port = '/dev/serial/by-id/usb-Thorlabs_APT_Piezo_Controller_71837619-i
         ################
         WARNING
         The serial port is opened by this function. If the port is successfully opened, ensure that the port is closed before termination. 
+        Use the .close() method when closing the connection as .close() method sets all voltages to 0 first. 
     """
     verbose = Verbose
     ser.baudrate = 115200
@@ -178,7 +179,15 @@ def disableChannel(channel):
 def closePort():
     ser.close()
 
-
+def close():
+    """ This function resets all channels to zero voltage open loop mode and then closes the serial communication """
+    setMode(1,False)
+    setMode(2,False)
+    setMode(3,False)
+    setOutputVoltage(1,0)
+    setOutputVoltage(2,0)
+    setOutputVoltage(3,0)
+    closePort()
 
 #########################
 # Helper functions

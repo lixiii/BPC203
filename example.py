@@ -18,4 +18,4 @@ time.sleep(1)
 bpc.getPosition(1)
 bpc.getPosition(2)
 
-bpc.closePort()
+bpc.close()
