@@ -6,6 +6,7 @@ from bcolours import BC
 ser = serial.Serial()
 
 verbose = False
+__DEBUG__ = False
 
 # the following variables are obtained from the communication protocol and applies to the KST101
 des = 0x50  # generic USB - addresses the entire controller
@@ -29,6 +30,7 @@ def init( port = '/dev/serial/by-id/usb-Thorlabs_APT_Piezo_Controller_71837619-i
         The serial port is opened by this function. If the port is successfully opened, ensure that the port is closed before termination. 
         Use the .close() method when closing the connection as .close() method sets all voltages to 0 first. 
     """
+    global verbose
     verbose = Verbose
     ser.baudrate = 115200
     ser.port = port
@@ -58,9 +60,10 @@ def setMode(channel, closedLoop = True):
     if closedLoop:
         mode = 0x02 # closed loop smooth
     cmd = bytearray([ 0x40, 0x06, 0x01,  mode, bay[channel - 1], source ])
-    if verbose: 
+    if __DEBUG__: 
         print(cmd.hex())
-    print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_POSCONTROLMODE' to controller for channel " + str(channel) + BC.ENDC)
+    if verbose:
+        print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_POSCONTROLMODE' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
 
 def getMode(channel):
@@ -70,11 +73,11 @@ def getMode(channel):
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
     cmd = bytearray([ 0x41, 0x06, 0x01, 0x00, bay[channel - 1], source ])
-    if verbose: 
+    if __DEBUG__: 
         print(cmd.hex())
     ser.write(cmd)
     resp = ser.read(6)
-    if verbose: 
+    if __DEBUG__: 
         print(resp.hex())
         print("Mode = " + str(resp[3]) )
     return resp[3]
@@ -91,9 +94,10 @@ def zero(channel):
     # ensure that channel is enabled by enabling it anyway
     enableChannel(channel)
     cmd = bytearray([ 0x58, 0x06, 0x01, 0x00, bay[channel - 1], source ])
-    if verbose: 
+    if __DEBUG__: 
         print(cmd.hex())
-    print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_ZERO' to controller for channel " + str(channel) + BC.ENDC)
+    if verbose:    
+        print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_ZERO' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
 
 def zeroFinished(channel):
@@ -125,9 +129,10 @@ def position(channel, pos):
 
     posScaled = pos / (MAX_POSITION) * POS_SCALE_FACTOR
     cmd = bytearray([ 0x46, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(posScaled, 2))
-    if verbose: 
+    if __DEBUG__: 
         print(cmd.hex())
-    print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTPOS' to controller for channel " + str(channel) + BC.ENDC)
+    if verbose:    
+        print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTPOS' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
     
 def getPosition(channel):
@@ -139,7 +144,7 @@ def getPosition(channel):
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
     cmd = bytearray([ 0x47, 0x06, 0x01, 0x00, bay[channel - 1], source ])
-    if verbose: 
+    if __DEBUG__: 
         print(cmd.hex())
     ser.write(cmd)
     resp = ser.read(10)
@@ -147,7 +152,8 @@ def getPosition(channel):
     posMSB = list(resp[-2:])[1]
     posLSB = list(resp[-2:])[0]
     pos = int ( ( posMSB * 256 + posLSB ) / POS_SCALE_FACTOR * MAX_POSITION )
-    print(BC.OKBLUE + "Position of channel " + str(channel) + " = " + str(pos) + " nanometers " + BC.ENDC )
+    if verbose:    
+        print(BC.OKBLUE + "Position of channel " + str(channel) + " = " + str(pos) + " nanometers " + BC.ENDC )
     return pos
 
 def getVoltage(channel):
@@ -159,12 +165,13 @@ def getVoltage(channel):
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
     cmd = bytearray([ 0x44, 0x06, 0x01, 0x00, bay[channel - 1], source ])
-    if verbose: 
+    if __DEBUG__: 
         print(cmd.hex())
     ser.write(cmd)
     resp = ser.read(10)
     vol = int.from_bytes( bytearray(resp[-2:]), "little", signed=True ) / VOL_SCALE_FACTOR * MAX_VOLTAGE_OUTPUT
-    print(BC.OKBLUE + "Voltage of channel " + str(channel) + " = " + str(vol) + " volts " + BC.ENDC )
+    if verbose:    
+        print(BC.OKBLUE + "Voltage of channel " + str(channel) + " = " + str(vol) + " volts " + BC.ENDC )
     return vol
 
 
@@ -180,9 +187,10 @@ def setOutputVoltage(channel, voltage):
 
     volScaled = voltage / MAX_VOLTAGE_OUTPUT * VOL_SCALE_FACTOR
     cmd = bytearray([ 0x43, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(volScaled, 2))
-    if verbose: 
+    if __DEBUG__: 
         print(cmd.hex())
-    print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTVOLTS' to controller for channel " + str(channel) + BC.ENDC)
+    if verbose:    
+        print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTVOLTS' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
 
 def rampVoltage(channel, target, step=100):
@@ -197,7 +205,7 @@ def getEnableState(channel):
     resp = ser.read(6)
     print(" enabled state is " + str(resp[3]))
     # an enable state of 2 is disable
-    if verbose:
+    if __DEBUG__:
         print(resp.hex())
 
 def enableChannel(channel):
@@ -218,6 +226,8 @@ def close():
     setOutputVoltage(2,0)
     setOutputVoltage(3,0)
     closePort()
+    if verbose:
+        print(BC.OKBLUE + "Communication port closed and voltages reset." + BC.ENDC)
 
 #########################
 # Helper functions
