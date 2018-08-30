@@ -107,20 +107,21 @@ def zeroFinished(channel):
 
 def position(channel, pos):
     """
-        This function positions the DRV517 actuator to a position relative to the zero'ed position. The position parameter is in MICROMETERS
+        This function positions the DRV517 actuator to a position relative to the zero'ed position. The position parameter is in NANOMETERS
         
-        NOTE: pos takes values from 0 to 30 micrometer, which is the maximum piezo travel. 
+        NOTE: pos takes values from 0 to 30 000 nanometer, which is the maximum piezo travel. 
         NOTE: Also, the channel needs to have finished the zeroing routine. ENSURE that the zeroing routine is finished by checking the mode. Otherwise, this command is ignored by the unit. 
+        NOTE: Due to controller malfunction, the maximum range that the controller is able to achieve is 21 514 nm. 
     """
     #error checking
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
-    if pos > 30 or pos < 0:
-        raise ValueError("pos paramter needs to be smaller than 30 and larger than 0")
+    if pos > 30000 or pos < 0:
+        raise ValueError("pos paramter needs to be smaller than 30000 and larger than 0")
     if zeroFinished( channel ) == False:
         raise RuntimeError("The zeroing routine has not finished. The position command will be ignored. ")
 
-    posScaled = pos / 30 * POS_SCALE_FACTOR
+    posScaled = pos / 30000 * POS_SCALE_FACTOR
     cmd = bytearray([ 0x46, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(posScaled, 2))
     if verbose: 
         print(cmd.hex())
@@ -152,8 +153,8 @@ def getPosition(channel):
 def setOutputVoltage(channel, voltage):
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
-    if voltage > 100 or voltage < 0:
-        raise ValueError("voltage paramter needs to be smaller than 100 percent and larger than 0")
+    # if voltage > 100 or voltage < 0:
+        # raise ValueError("voltage paramter needs to be smaller than 100 percent and larger than 0")
 
     volScaled = voltage / 100 * VOL_SCALE_FACTOR
     cmd = bytearray([ 0x43, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(volScaled, 2))
