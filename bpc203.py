@@ -3,6 +3,7 @@
 import serial
 import math
 from bcolours import BC
+import time
 ser = serial.Serial()
 
 verbose = False
@@ -193,12 +194,16 @@ def setOutputVoltage(channel, voltage):
         print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTVOLTS' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
 
-def rampVoltage(channel, target, step=100):
-    """ This function steps the voltage to the target with a total specified number of steps"""
+def rampVoltage(channel, target, step=100, timeDelay = 1):
+    """ 
+        This function steps the voltage to the target with a total specified number of steps. 
+        Between each step, the program sleeps for the specified delay which has milisecond units. 
+    """
     vol = float( getVoltage(channel) )
     delta = ( target - vol ) / step
     for i in range(step+1):
-        setOutputVoltage(channel, vol - delta * i )
+        setOutputVoltage(channel, vol + delta * i )
+        time.sleep(timeDelay / 1000)
 
 def getEnableState(channel):
     ser.write( bytearray([ 0x11, 0x02, 0x01, 0x00, bay[channel - 1], source ]) )
@@ -222,12 +227,11 @@ def close():
     setMode(1,False)
     setMode(2,False)
     setMode(3,False)
-    setOutputVoltage(1,0)
-    setOutputVoltage(2,0)
-    setOutputVoltage(3,0)
+    rampVoltage(1,0)
+    rampVoltage(2,0)
+    rampVoltage(3,0)
     closePort()
-    if verbose:
-        print(BC.OKBLUE + "Communication port closed and voltages reset." + BC.ENDC)
+    print(BC.OKBLUE + "Communication port closed and voltages reset." + BC.ENDC)
 
 #########################
 # Helper functions
