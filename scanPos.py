@@ -15,6 +15,8 @@ while bpc.zeroFinished(1) != True and bpc.zeroFinished(2) != True:
     # resend status check every 0.5s
     time.sleep(0.5)
 
+input("Channels zeroed. Hit enter to continue. ")
+
 print("Scanning channel 1 actuator from 0 um to 30um")
 for i in range(31):
     bpc.position(1, i * 1000 )
@@ -29,6 +31,8 @@ print("Scanning channel 3 actuator from 0 um to 30um")
 for i in range(48):
     bpc.setOutputVoltage(3, i )
     time.sleep(0.1)
+
+input("Forward scan complete. Hit enter to continue")
 
 print("Returning channel 1 actuator back to origin")
 for i in range(30, 0, -1):

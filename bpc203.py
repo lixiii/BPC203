@@ -94,6 +94,10 @@ def zero(channel):
 
     # ensure that channel is enabled by enabling it anyway
     enableChannel(channel)
+    # check if channel has already been zeroed
+    if zeroFinished(channel):
+        print(BC.OKGREEN + "Channel " + str(channel) + " has already been zeroed" + BC.ENDC)
+        return
     cmd = bytearray([ 0x58, 0x06, 0x01, 0x00, bay[channel - 1], source ])
     if __DEBUG__: 
         print(cmd.hex())
