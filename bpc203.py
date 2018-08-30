@@ -18,6 +18,8 @@ source = 0x01  # host
 # from the datasheet
 POS_SCALE_FACTOR = 32767
 VOL_SCALE_FACTOR = 32767
+MAX_VOLTAGE_OUTPUT = 75 # in volts
+MAX_POSITION = 30 * 1000 # in nm
 
 def init( port = '/dev/serial/by-id/usb-Thorlabs_APT_Piezo_Controller_71837619-if00-port0', Verbose = False):
     """
@@ -116,12 +118,12 @@ def position(channel, pos):
     #error checking
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
-    if pos > 30000 or pos < 0:
-        raise ValueError("pos paramter needs to be smaller than 30000 and larger than 0")
+    if pos > MAX_POSITION or pos < 0:
+        raise ValueError("pos paramter needs to be smaller than MAX_POSITION and larger than 0")
     if zeroFinished( channel ) == False:
         raise RuntimeError("The zeroing routine has not finished. The position command will be ignored. ")
 
-    posScaled = pos / 30000 * POS_SCALE_FACTOR
+    posScaled = pos / (MAX_POSITION) * POS_SCALE_FACTOR
     cmd = bytearray([ 0x46, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(posScaled, 2))
     if verbose: 
         print(cmd.hex())
@@ -130,7 +132,7 @@ def position(channel, pos):
     
 def getPosition(channel):
     """
-        This function requests the position of a channel and converts the result into nanometers. It assumes that a DRV517 is used with a maximum trabel of 30 um. 
+        This function requests the position of a channel and converts the result into nanometers. It assumes that a DRV517 is used with a maximum travel of MAX_POSITION nanometers. 
         
         This function returns the position in integer nanometer.
     """
@@ -144,9 +146,26 @@ def getPosition(channel):
     # convert into micrometer
     posMSB = list(resp[-2:])[1]
     posLSB = list(resp[-2:])[0]
-    pos = int ( ( posMSB * 256 + posLSB ) / POS_SCALE_FACTOR * 30 * 1000 )
+    pos = int ( ( posMSB * 256 + posLSB ) / POS_SCALE_FACTOR * MAX_POSITION )
     print(BC.OKBLUE + "Position of channel " + str(channel) + " = " + str(pos) + " nanometers " + BC.ENDC )
     return pos
+
+def getVoltage(channel):
+    """
+        This function requests the voltage of a channel and converts the result into output voltage. It assumes that a DRV517 is used with a maximum output of MAX_OUTPUT_VOLTAGE volts
+        
+        This function returns the voltage in volts.
+    """
+    if channel != 1 and channel != 2 and channel != 3:
+        raise ValueError("Channel needs to be 1, 2 or 3")
+    cmd = bytearray([ 0x44, 0x06, 0x01, 0x00, bay[channel - 1], source ])
+    if verbose: 
+        print(cmd.hex())
+    ser.write(cmd)
+    resp = ser.read(10)
+    vol = int.from_bytes( bytearray(resp[-2:]), "little", signed=True ) / VOL_SCALE_FACTOR * MAX_VOLTAGE_OUTPUT
+    print(BC.OKBLUE + "Voltage of channel " + str(channel) + " = " + str(vol) + " volts " + BC.ENDC )
+    return vol
 
 
 
@@ -159,12 +178,19 @@ def setOutputVoltage(channel, voltage):
     if channel != 1 and channel != 2 and channel != 3:
         raise ValueError("Channel needs to be 1, 2 or 3")
 
-    volScaled = voltage / 75 * VOL_SCALE_FACTOR
+    volScaled = voltage / MAX_VOLTAGE_OUTPUT * VOL_SCALE_FACTOR
     cmd = bytearray([ 0x43, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(volScaled, 2))
     if verbose: 
         print(cmd.hex())
     print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTVOLTS' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
+
+def rampVoltage(channel, target, step=100):
+    """ This function steps the voltage to the target with a total specified number of steps"""
+    vol = float( getVoltage(channel) )
+    delta = ( target - vol ) / step
+    for i in range(step+1):
+        setOutputVoltage(channel, vol - delta * i )
 
 def getEnableState(channel):
     ser.write( bytearray([ 0x11, 0x02, 0x01, 0x00, bay[channel - 1], source ]) )
