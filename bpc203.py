@@ -122,6 +122,7 @@ def position(channel, pos):
         NOTE: pos takes values from 0 to 30 000 nanometer, which is the maximum piezo travel. 
         NOTE: Also, the channel needs to have finished the zeroing routine. ENSURE that the zeroing routine is finished by checking the mode. Otherwise, this command is ignored by the unit. 
         NOTE: Due to controller malfunction, the maximum range that the controller is able to achieve is 21 514 nm. 
+        NOTE: As of 17 Sept, Channel 1 corresponds to vertical actuator and channel 2 controls the direction along the 1D array
     """
     #error checking
     if channel != 1 and channel != 2 and channel != 3:
