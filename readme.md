@@ -12,6 +12,11 @@ Alternatively, if you are a strict adherent to Git best practices, you can add t
 $ git submodule add https://github.com/lixiii/BPC203.git
 ```
 
+**Alternatively, a setup script has been provided and the package can be installed to the home directory by the following command**
+```
+$ sudo python3 setup.py install
+```
+
 ## Unit test
 
 All unit tests are written using pytest module and can be run by 
