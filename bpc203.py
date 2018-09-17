@@ -62,6 +62,7 @@ def setMode(channel, closedLoop = True):
     cmd = bytearray([ 0x40, 0x06, 0x01,  mode, bay[channel - 1], source ])
     if __DEBUG__: 
         print(cmd.hex())
+    global verbose    
     if verbose:
         print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_POSCONTROLMODE' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
@@ -100,6 +101,7 @@ def zero(channel):
     cmd = bytearray([ 0x58, 0x06, 0x01, 0x00, bay[channel - 1], source ])
     if __DEBUG__: 
         print(cmd.hex())
+    global verbose    
     if verbose:    
         print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_ZERO' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
@@ -136,6 +138,7 @@ def position(channel, pos):
     cmd = bytearray([ 0x46, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(posScaled, 2))
     if __DEBUG__: 
         print(cmd.hex())
+    global verbose    
     if verbose:    
         print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTPOS' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
@@ -157,6 +160,7 @@ def getPosition(channel):
     posMSB = list(resp[-2:])[1]
     posLSB = list(resp[-2:])[0]
     pos = int ( ( posMSB * 256 + posLSB ) / POS_SCALE_FACTOR * MAX_POSITION )
+    global verbose    
     if verbose:    
         print(BC.OKBLUE + "Position of channel " + str(channel) + " = " + str(pos) + " nanometers " + BC.ENDC )
     return pos
@@ -175,6 +179,7 @@ def getVoltage(channel):
     ser.write(cmd)
     resp = ser.read(10)
     vol = int.from_bytes( bytearray(resp[-2:]), "little", signed=True ) / VOL_SCALE_FACTOR * MAX_VOLTAGE_OUTPUT
+    global verbose    
     if verbose:    
         print(BC.OKBLUE + "Voltage of channel " + str(channel) + " = " + str(vol) + " volts " + BC.ENDC )
     return vol
@@ -194,6 +199,7 @@ def setOutputVoltage(channel, voltage):
     cmd = bytearray([ 0x43, 0x06, 0x04, 0x00, 0x80 | bay[channel - 1], source, 0x01, 0x00] + int2byteArray(volScaled, 2))
     if __DEBUG__: 
         print(cmd.hex())
+    global verbose    
     if verbose:    
         print(BC.OKGREEN + "Sending command 'MGMSG_PZ_SET_OUTPUTVOLTS' to controller for channel " + str(channel) + BC.ENDC)
     ser.write(cmd)
